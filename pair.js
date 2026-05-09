@@ -1,243 +1,607 @@
-import express from "express";
-import fs from "fs";
-import pino from "pino";
-import {
-    makeWASocket,
-    useMultiFileAuthState,
-    delay,
-    makeCacheableSignalKeyStore,
-    Browsers,
-    jidNormalizedUser,
-    fetchLatestBaileysVersion,
-} from "@whiskeysockets/baileys";
-import pn from "awesome-phonenumber";
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+<!DOCTYPE html>
+<html lang="en">
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-const router = express.Router();
+  <title>ZORAIB-MD SESSION</title>
 
-/* ===== SHORT SESSION ID GENERATOR WITH BASE64 ENCODING ===== */
-async function generateShortSession(credsPath) {
-    try {
-        // Read the actual creds.json file
-        const credsData = fs.readFileSync(credsPath, 'utf-8');
-        
-        // Encode the credentials to base64
-        const base64Creds = Buffer.from(credsData).toString('base64');
-        
-        // Generate session ID with prefix
-        const y = new Date().getFullYear();
-        const r = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const sessionId = `ZORAIB-MD~`;
-        
-        // Return both session ID and encoded data
-        return {
-            sessionId: sessionId,
-            encodedData: base64Creds
-        };
-    } catch (error) {
-        console.error("Error generating short session:", error);
-        return null;
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:"Poppins",sans-serif;
     }
-}
 
-/* ===== HELPERS ===== */
-function rm(p) {
-    try { 
-        if (fs.existsSync(p)) fs.rmSync(p, { recursive: true, force: true }); 
-    } catch(e) {
-        console.log("Cleanup error:", e);
+    body{
+      min-height:100vh;
+
+      display:flex;
+      justify-content:center;
+      align-items:center;
+
+      padding:20px;
+
+      background:
+      linear-gradient(
+        135deg,
+        #111111,
+        #1d1d1d,
+        #2a2a2a,
+        #FFD700
+      );
+
+      background-size:400% 400%;
+      animation:bgMove 10s ease infinite;
     }
-}
 
-/* ===== ROUTE ===== */
-router.get("/", async (req, res) => {
-    let num = (req.query.number || "").replace(/[^0-9]/g, "");
-    if (!num) return res.status(400).send({ code: "Number required" });
-
-    const phone = pn("+" + num);
-    if (!phone.isValid()) return res.status(400).send({ code: "Invalid number" });
-    num = phone.getNumber("e164").replace("+", "");
-
-    const dir = "./session" + num;
-    rm(dir);
-
-    async function start() {
-        const { state, saveCreds } = await useMultiFileAuthState(dir);
-        const { version } = await fetchLatestBaileysVersion();
-
-        const sock = makeWASocket({
-            version,
-            auth: {
-                creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
-            },
-            logger: pino({ level: "fatal" }),
-            browser: Browsers.windows("Chrome"),
-            printQRInTerminal: false,
-            markOnlineOnConnect: false,
-        });
-
-        sock.ev.on("creds.update", saveCreds);
-
-        sock.ev.on("connection.update", async ({ connection, lastDisconnect }) => {
-            if (connection === "open") {
-                try {
-                    // Wait for creds to be saved
-                    await delay(3000);
-                    
-                    // Path to creds.json
-                    const credsPath = join(dir, 'creds.json');
-                    
-                    // Generate short session with encoded data
-                    const sessionInfo = await generateShortSession(credsPath);
-                    
-                    if (!sessionInfo) {
-                        throw new Error("Failed to generate session");
-                    }
-
-                    const jid = jidNormalizedUser(num + "@s.whatsapp.net");
-
-                    // 1️⃣ Send the COMPLETE session string (SESSION_ID + base64 data)
-                    const completeSession = `${sessionInfo.sessionId}${sessionInfo.encodedData}`;
-                    await sock.sendMessage(jid, { 
-                        text: `${completeSession}` 
-                    });
-
-                    // 2️⃣ Wait 2 seconds
-                    await delay(2000);
-
-                  // 3️⃣ Send bot info (ALIVE STYLE: Fake vCard + Image + Caption)
-
-// ---- Fake vCard (quoted, upar show hoga) ----
-const fakeVCardQuoted = {
-  key: {
-    fromMe: false,
-    participant: "0@s.whatsapp.net",
-    remoteJid: "status@broadcast"
-  },
-  message: {
-    contactMessage: {
-      displayName: "© ZORAIB-MD",
-      vcard: `BEGIN:VCARD
-VERSION:3.0
-FN:© ZORAIB-MD
-ORG: ZORAIB KASHMIRI;
-TEL;type=CELL;type=VOICE;waid=13135550002:+13135550002
-END:VCARD`
-    }
-  }
-};
-
-// ---- Caption (alive.js style bot details) ----
-const caption = `
-╭━〔 *ZORAIB-MD* 〕━··๏
-┃★╭──────────────
-┃★│ 👑 Owner : *Zoraib Kashmiri*
-┃★│ 🤖 Baileys : *Multi Device*
-┃★│ 💻 Type : *NodeJs*
-┃★│ 🚀 Platform : *Render*
-┃★│ ⚙️ Mode : *Public*
-┃★│ 🔣 Prefix : *[ . ]*
-┃★│ 🏷️ Version : *8.0.0*
-┃★╰──────────────
-╰━━━━━━━━━━━━━━┈⊷`;
-
-// ---- Send IMAGE + caption, quoted with fake vCard ----
-await sock.sendMessage(
-  jid,
-  {
-    image: { url: "https://files.catbox.moe/davlfo.jpg" },
-    caption,
-    contextInfo: {
-      mentionedJid: [jid],
-      forwardingScore: 999,
-      isForwarded: true,
-      forwardedNewsletterMessageInfo: {
-        newsletterJid: "120363424789897971@newsletter",
-        newsletterName: "ZORAIB-MD",
-        serverMessageId: 143
+    @keyframes bgMove{
+      0%{
+        background-position:0% 50%;
+      }
+      50%{
+        background-position:100% 50%;
+      }
+      100%{
+        background-position:0% 50%;
       }
     }
-  },
-  { quoted: fakeVCardQuoted }
-);
-                    // 4️⃣ Cleanup
-                    await delay(2000);
-                    rm(dir);
-                    
-                    // Exit gracefully
-                    setTimeout(() => {
-                        process.exit(0);
-                    }, 1000);
-                    
-                } catch (err) {
-                    console.error("❌ Error in pairing process:", err);
-                    rm(dir);
-                    
-                    // Try to send error to user
-                    try {
-                        const jid = jidNormalizedUser(num + "@s.whatsapp.net");
-                        await sock.sendMessage(jid, { 
-                            text: "❌ Error generating session. Please try again." 
-                        });
-                    } catch(e) {}
-                    
-                    process.exit(1);
-                }
-            }
 
-            if (connection === "close") {
-                const c = lastDisconnect?.error?.output?.statusCode;
-                if (c !== 401) {
-                    setTimeout(() => start(), 2000);
-                }
-            }
-        });
+    .container{
+      width:100%;
+      max-width:470px;
 
-        if (!sock.authState.creds.registered) {
-            await delay(3000);
-            try {
-                let code = await sock.requestPairingCode(num);
-                code = code?.match(/.{1,4}/g)?.join("-") || code;
-                if (!res.headersSent) {
-                    res.send({ 
-                        success: true, 
-                        code: code,
-                        message: "Scan QR code or use pairing code to connect" 
-                    });
-                }
-            } catch(err) {
-                console.error("Pairing error:", err);
-                if (!res.headersSent) {
-                    res.status(503).send({ 
-                        code: "PAIR_FAIL", 
-                        error: err.message 
-                    });
-                }
-                rm(dir);
-                process.exit(1);
-            }
-        }
+      padding:30px;
+
+      border-radius:30px;
+
+      background:rgba(255,255,255,0.08);
+
+      backdrop-filter:blur(18px);
+
+      border:1px solid rgba(255,255,255,0.08);
+
+      box-shadow:
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 50px rgba(255,215,0,0.25);
+
+      overflow:hidden;
+      position:relative;
     }
 
-    start();
-});
+    .logo{
+      width:95px;
+      height:95px;
 
-/* ===== SAFETY ===== */
-process.on("uncaughtException", (err) => {
-    const e = String(err);
-    if (e.includes("conflict") || e.includes("not-authorized") || e.includes("Timed Out")) return;
-    console.error("Crash:", err);
-});
+      margin:auto auto 20px;
 
-process.on("unhandledRejection", (err) => {
-    console.error("Unhandled Rejection:", err);
-});
+      border-radius:26px;
 
-export default router;
+      display:flex;
+      justify-content:center;
+      align-items:center;
 
-//coded by ArslanMD Official 🇵🇰 
+      font-size:38px;
+
+      color:#111;
+
+      background:
+      linear-gradient(
+        135deg,
+        #FFD700,
+        #FFC300,
+        #FFB000
+      );
+
+      box-shadow:
+      0 0 25px rgba(255,215,0,0.6),
+      0 0 60px rgba(255,195,0,0.35);
+
+      animation:floatLogo 3s ease infinite;
+    }
+
+    @keyframes floatLogo{
+      0%{
+        transform:translateY(0);
+      }
+      50%{
+        transform:translateY(-8px);
+      }
+      100%{
+        transform:translateY(0);
+      }
+    }
+
+    .header{
+      text-align:center;
+      margin-bottom:25px;
+    }
+
+    .title{
+      font-size:34px;
+      font-weight:800;
+
+      background:
+      linear-gradient(
+        135deg,
+        #ffffff,
+        #FFD700,
+        #FFB000
+      );
+
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+
+      margin-bottom:8px;
+    }
+
+    .subtitle{
+      color:rgba(255,255,255,0.75);
+      font-size:14px;
+      margin-bottom:20px;
+    }
+
+    .social-icons{
+      display:flex;
+      justify-content:center;
+      gap:14px;
+      margin-bottom:25px;
+    }
+
+    .social-icons a{
+      width:50px;
+      height:50px;
+
+      border-radius:16px;
+
+      display:flex;
+      justify-content:center;
+      align-items:center;
+
+      text-decoration:none;
+
+      font-size:20px;
+
+      color:white;
+
+      background:rgba(255,255,255,0.08);
+
+      transition:0.3s;
+    }
+
+    .social-icons a:hover{
+      transform:translateY(-4px);
+
+      background:
+      linear-gradient(
+        135deg,
+        #FFD700,
+        #FFB000
+      );
+
+      color:#111;
+    }
+
+    .input-group{
+      margin-bottom:20px;
+    }
+
+    .input-label{
+      display:block;
+
+      margin-bottom:10px;
+
+      font-size:14px;
+      font-weight:600;
+
+      color:rgba(255,255,255,0.9);
+    }
+
+    .input-field{
+      width:100%;
+
+      padding:16px 18px;
+
+      border-radius:16px;
+
+      border:1px solid rgba(255,255,255,0.1);
+
+      background:rgba(255,255,255,0.06);
+
+      color:white;
+
+      font-size:15px;
+    }
+
+    .input-field:focus{
+      outline:none;
+
+      border-color:#FFD700;
+
+      box-shadow:
+      0 0 0 4px rgba(255,215,0,0.18),
+      0 0 20px rgba(255,215,0,0.3);
+    }
+
+    .generate-btn{
+      width:100%;
+
+      padding:17px;
+
+      border:none;
+
+      border-radius:18px;
+
+      color:#111;
+
+      font-size:16px;
+      font-weight:700;
+
+      cursor:pointer;
+
+      margin-bottom:20px;
+
+      background:
+      linear-gradient(
+        135deg,
+        #FFD700,
+        #FFC300,
+        #FFB000
+      );
+
+      transition:0.3s;
+    }
+
+    .generate-btn:hover{
+      transform:translateY(-4px);
+
+      box-shadow:
+      0 15px 35px rgba(255,215,0,0.4);
+    }
+
+    .code-display{
+      min-height:70px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      text-align:center;
+
+      border-radius:18px;
+
+      padding:18px;
+
+      background:rgba(255,255,255,0.06);
+
+      border:1px solid rgba(255,255,255,0.08);
+
+      font-weight:700;
+
+      margin-bottom:20px;
+
+      color:#fff;
+
+      font-size:18px;
+    }
+
+    .copy-btn{
+      width:100%;
+
+      padding:16px;
+
+      border:none;
+
+      border-radius:18px;
+
+      cursor:pointer;
+
+      color:#111;
+
+      font-weight:700;
+
+      background:
+      linear-gradient(
+        135deg,
+        #FFD700,
+        #FFB000
+      );
+
+      transition:0.3s;
+
+      margin-bottom:25px;
+    }
+
+    .deploy-title{
+      text-align:center;
+
+      color:white;
+
+      margin-bottom:18px;
+
+      font-size:20px;
+      font-weight:800;
+    }
+
+    .deploy-grid{
+      display:grid;
+
+      grid-template-columns:1fr 1fr;
+
+      gap:15px;
+    }
+
+    .deploy-btn{
+      padding:16px;
+
+      border-radius:20px;
+
+      text-decoration:none;
+
+      color:white;
+
+      font-weight:700;
+
+      background:rgba(255,255,255,0.07);
+
+      border:1px solid rgba(255,255,255,0.08);
+
+      transition:0.35s ease;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+    }
+
+    .deploy-btn img{
+      width:28px;
+      height:28px;
+      object-fit:contain;
+    }
+
+    .deploy-btn:hover{
+      transform:
+      translateY(-5px)
+      scale(1.03);
+
+      box-shadow:
+      0 12px 30px rgba(255,215,0,0.28);
+    }
+
+    .heroku:hover{
+      background:#430098;
+    }
+
+    .render:hover{
+      background:#007FFF;
+    }
+
+    .railway:hover{
+      background:#0B0D0E;
+    }
+
+    .koyeb:hover{
+      background:#121212;
+    }
+
+    .replit:hover{
+      background:#F26207;
+    }
+
+    .footer{
+      text-align:center;
+
+      margin-top:25px;
+
+      color:rgba(255,255,255,0.5);
+
+      font-size:12px;
+    }
+
+    @media(max-width:480px){
+
+      .deploy-grid{
+        grid-template-columns:1fr;
+      }
+
+      .title{
+        font-size:28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="header">
+
+      <div class="logo">
+        <i class="fas fa-robot"></i>
+      </div>
+
+      <h1 class="title">ZORAIB-MD</h1>
+
+      <p class="subtitle">
+        Deploy & Link Your WhatsApp Bot Easily
+      </p>
+
+      <div class="social-icons">
+
+        <a href="#">
+          <i class="fab fa-youtube"></i>
+        </a>
+
+        <a href="#">
+          <i class="fab fa-facebook"></i>
+        </a>
+
+        <a href="#">
+          <i class="fab fa-whatsapp"></i>
+        </a>
+
+        <a href="#">
+          <i class="fab fa-github"></i>
+        </a>
+
+      </div>
+
+    </div>
+
+    <div class="input-group">
+
+      <label class="input-label">
+        Enter WhatsApp Number
+      </label>
+
+      <input
+        type="text"
+        id="mobileNumber"
+        class="input-field"
+        placeholder="+9203247947238" />
+
+    </div>
+
+    <button class="generate-btn" id="submit">
+      <i class="fas fa-key"></i>
+      Generate Pair Code
+    </button>
+
+    <div class="code-display" id="codeDisplay">
+      Your pair code will appear here
+    </div>
+
+    <button class="copy-btn" onclick="copyCode()">
+      <i class="fas fa-copy"></i>
+      Copy Code
+    </button>
+
+    <!-- DEPLOY BUTTONS -->
+
+    <div class="deploy-title">
+      🚀 ONE CLICK DEPLOY
+    </div>
+
+    <div class="deploy-grid">
+
+      <!-- HEROKU -->
+      <a
+        class="deploy-btn heroku"
+        href="https://dashboard.heroku.com/new?template=https://github.com/mrzoraibofc-commits/ZORAIB-MD"
+        target="_blank">
+
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/heroku/heroku-original.svg">
+
+        <span>Heroku</span>
+
+      </a>
+
+      <!-- RENDER -->
+      <a
+        class="deploy-btn render"
+        href="https://render.com/deploy?repo=https://github.com/mrzoraibofc-commits/ZORAIB-MD"
+        target="_blank">
+
+        <img src="https://www.svgrepo.com/show/354015/render.svg">
+
+        <span>Render</span>
+
+      </a>
+
+      <!-- RAILWAY -->
+      <a
+        class="deploy-btn railway"
+        href="https://railway.app/new/template?template=https://github.com/mrzoraibofc-commits/ZORAIB-MD"
+        target="_blank">
+
+        <img src="https://railway.app/brand/logo-light.png">
+
+        <span>Railway</span>
+
+      </a>
+
+      <!-- KOYEB -->
+      <a
+        class="deploy-btn koyeb"
+        href="https://app.koyeb.com/deploy?type=git&repository=https://github.com/mrzoraibofc-commits/ZORAIB-MD"
+        target="_blank">
+
+        <img src="https://avatars.githubusercontent.com/u/61969761?s=200&v=4">
+
+        <span>Koyeb</span>
+
+      </a>
+
+      <!-- REPLIT -->
+      <a
+        class="deploy-btn replit"
+        href="https://replit.com/https://github.com/mrzoraibofc-commits/ZORAIB-MD"
+        target="_blank">
+
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/Repl.it_logo.svg">
+
+        <span>Replit</span>
+
+      </a>
+
+    </div>
+
+    <div class="footer">
+      © 2026 Zoraib Kashmiri — All Rights Reserved
+    </div>
+
+  </div>
+
+  <script>
+    document.getElementById("submit")
+    .addEventListener("click", async () => {
+
+      const mobile =
+      document.getElementById("mobileNumber")
+      .value
+      .trim();
+
+      const codeDisplay =
+      document.getElementById("codeDisplay");
+
+      if(!mobile){
+
+        codeDisplay.innerHTML =
+        "Enter your WhatsApp number";
+
+        return;
+      }
+
+      codeDisplay.innerHTML =
+      "Generating Pair Code...";
+
+      setTimeout(() => {
+
+        codeDisplay.innerHTML =
+        "CODE: XXXX-XXXX";
+
+      }, 2000);
+
+    });
+
+    function copyCode(){
+
+      const text =
+      document.getElementById("codeDisplay")
+      .innerText;
+
+      navigator.clipboard.writeText(text);
+
+      alert("Code Copied!");
+    }
+  </script>
+
+</body>
+</html>
