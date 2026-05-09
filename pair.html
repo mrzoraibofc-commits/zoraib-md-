@@ -479,58 +479,6 @@
         opacity: 1;
       }
 
-      /* Deployment Buttons Section - New Addition */
-      .deploy-section {
-        margin: 25px 0 20px;
-        text-align: center;
-      }
-
-      .deploy-title {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 18px;
-        color: rgba(255, 255, 255, 0.7);
-        letter-spacing: 0.5px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-
-      .deploy-title i {
-        color: #dc2626;
-      }
-
-      .deploy-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px;
-        margin-bottom: 5px;
-      }
-
-      .deploy-buttons a {
-        display: inline-block;
-        transition: all 0.2s ease;
-        text-decoration: none;
-      }
-
-      .deploy-buttons a:hover {
-        transform: translateY(-2px);
-        filter: brightness(1.05);
-      }
-
-      .deploy-buttons img {
-        height: 40px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        transition: box-shadow 0.2s;
-      }
-
-      .deploy-buttons a:hover img {
-        box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
-      }
-
       @media (max-width: 480px) {
         .container {
           padding: 25px;
@@ -561,10 +509,6 @@
 
         .title {
           font-size: 26px;
-        }
-
-        .deploy-buttons img {
-          height: 36px;
         }
       }
 
@@ -659,40 +603,6 @@
         <img id="qrImage" class="qr-image" src="" alt="QR Code" />
         <div class="qr-instructions" id="qrInstructions">
           Scan this QR code with your WhatsApp app
-        </div>
-      </div>
-
-      <!-- DEPLOYMENT BUTTONS SECTION (ADDED EXACTLY AS REQUESTED) -->
-      <div class="deploy-section">
-        <div class="deploy-title">
-          <i class="fas fa-rocket"></i> Deploy ZORAIB-MD Bot
-          <i class="fas fa-arrow-right"></i>
-        </div>
-        <div class="deploy-buttons">
-          <!-- Heroku (rocket style) -->
-          <a href="https://dashboard.heroku.com/new?template=https://github.com/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Heroku-430098?style=for-the-badge&logo=heroku&logoColor=white&labelColor=000000" alt="Deploy on Heroku"/>
-          </a>
-          <!-- Replit -->
-          <a href="https://replit.com/github/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Replit-F26207?style=for-the-badge&logo=replit&logoColor=white&labelColor=000000" alt="Deploy on Replit"/>
-          </a>
-          <!-- Koyeb -->
-          <a href="https://app.koyeb.com/deploy?type=git&repository=https://github.com/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Koyeb-FF009D?style=for-the-badge&logo=koyeb&logoColor=white&labelColor=000000" alt="Deploy on Koyeb"/>
-          </a>
-          <!-- Railway -->
-          <a href="https://railway.app/new/template?template=https://github.com/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Railway-FF8700?style=for-the-badge&logo=railway&logoColor=white&labelColor=000000" alt="Deploy on Railway"/>
-          </a>
-          <!-- Render (blue color theme) -->
-          <a href="https://render.com/deploy?repo=https://github.com/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white&labelColor=000000&color=007FFF" alt="Deploy on Render"/>
-          </a>
-          <!-- Netlify -->
-          <a href="https://app.netlify.com/start/deploy?repository=https://github.com/mrzoraibofc-commits/ZORAIB-MD" target="_blank">
-            <img src="https://img.shields.io/badge/Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white&labelColor=000000" alt="Deploy on Netlify"/>
-          </a>
         </div>
       </div>
 
